@@ -93,4 +93,45 @@
     const nama = document.getElementById("nama").value;
     const kelas = document.getElementById("kelas").value;
 
-    if (!navigator.geoloca
+    if (!navigator.geolocation) {
+      alert("Browser tidak mendukung GPS.");
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(function(pos) {
+      const lat = pos.coords.latitude;
+      const lon = pos.coords.longitude;
+
+      const jarak = hitungJarak(sekolahLat, sekolahLon, lat, lon);
+
+      if (jarak > maxRadius) {
+        alert("❌ Anda berada di luar area sekolah (jarak: " + jarak.toFixed(1) + " m). Absensi ditolak.");
+        return;
+      }
+
+      // Ganti URL ini dengan formResponse dari Google Form Bapak
+      const formURL = "https://docs.google.com/forms/d/e/1FAIpQLSfce9hxm3mzRmnQfudfxSFrWiazNOcnVKYieDW8ITbPKYyC7g/formResponse?";
+
+      const data = new URLSearchParams();
+      data.append("entry.1650028786", nama);   // Nama
+      data.append("entry.2089936329", kelas);  // Kelas
+      data.append("entry.1532119486", lat);    // Latitude
+      data.append("entry.1697944181", lon);    // Longitude
+
+      fetch(formURL, {
+        method: "POST",
+        mode: "no-cors",
+        body: data
+      }).then(() => {
+        alert("✅ Absensi berhasil dikirim!");
+        document.getElementById("absensiForm").reset();
+      }).catch(err => {
+        alert("⚠️ Gagal kirim absensi: " + err);
+      });
+    }, function(err) {
+      alert("⚠️ Gagal ambil lokasi: " + err.message);
+    });
+  });
+</script>
+</body>
+</html>
