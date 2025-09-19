@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Absensi Online SMP Semen Gresik</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 30px; }
+    h2 { color: #0066cc; }
+    form { max-width: 400px; padding: 20px; border: 1px solid #ccc; border-radius: 10px; }
+    label { font-weight: bold; display: block; margin-top: 10px; }
+    input, select, button { width: 100%; padding: 8px; margin-top: 5px; }
+    .note { font-size: 0.9em; color: gray; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <h2>Absensi Online SMP Semen Gresik</h2>
+  <form id="absensiForm">
+    <label for="nama">Nama:</label>
+    <input type="text" id="nama" name="nama" required>
+
+    <label for="kelas">Kelas:</label>
+    <select id="kelas" name="kelas" required>
+      <option value="">-- Pilih Kelas --</option>
+      <option value="7A">7A</option>
+      <option value="7B">7B</option>
+      <option value="7C">7C</option>
+      <option value="7D">7D</option>
+      <option value="8A">8A</option>
+      <option value="8B">8B</option>
+      <option value="8C">8C</option>
+      <option value="8D">8D</option>
+      <option value="9A">9A</option>
+      <option value="9B">9B</option>
+      <option value="9C">9C</option>
+      <option value="9D">9D</option>
+    </select>
+
+    <input type="hidden" id="lat" name="lat">
+    <input type="hidden" id="lon" name="lon">
+
+    <button type="submit">Kirim Absensi</button>
+    <div class="note">Pastikan GPS aktif. Absensi hanya bisa dilakukan di area SMP SG (radius 30 meter).</div>
+  </form>
+
+  <script>
+    // Koordinat SMP Semen Gresik dari Maps
+    const sekolahLat = -7.179016653327394;
+    const sekolahLon = 112.64857674876636;
+    const maxRadius = 30; // meter
+
+    function toRad(x) {
+      return x * Math.PI / 180;
+    }
+
+    // hitung jarak dengan haversine formula
+    function hitungJarak(lat1, lon1, lat2, lon2) {
+      const R = 6371000; // meter
+      const dLat = toRad(lat2 - lat1);
+      const dLon = toRad(lon2 - lon1);
+      const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
+    }
+
+    // ambil lokasi GPS
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(function(pos) {
+        document.getElementById("lat").value = pos.coords.latitude;
+        document.getElementById("lon").value = pos.coords.longitude;
+      }, function(err) {
+        alert("Gagal ambil lokasi: " + err.message);
+      });
+    } else {
+      alert("Browser tidak mendukung GPS.");
+    }
+
+    // saat form dikirim
+    document.getElementById("absensiForm").addEventListener("submit", function(e) {
+      e.preventDefault();
+
+      const nama = document.getElementById("nama").value;
+      const kelas = document.getElementById("kelas").value;
+      const lat = parseFloat(document.getElementById("lat").value);
+      const lon = parseFloat(document.getElementById("lon").value);
+
+      const jarak = hitungJarak(sekolahLat, sekolahLon, lat, lon);
+
+      if (jarak > maxRadius) {
+        alert("❌ Anda berada di luar area sekolah (jarak: " + jarak.toFixed(1) + " m). Absensi ditolak.");
+        return;
+      }
+
+      // URL Google Form (ganti dengan milik Bapak)
+      const formURL = "https://docs.google.com/forms/d/e/1FAIpQLSfce9hxm3mzRmnQfudfxSFrWiazNOcnVKYieDW8ITbPKYyC7g/formResponse?";
+
+      const data = new URLSearchParams();
+      data.append("entry.1650028786", nama);   // Nama
+      data.append("entry.2089936329", kelas);  // Kelas
+      data.append("entry.1532119486", lat);    // Latitude
+      data.append("entry.1697944181", lon);    // Longitude
+
+      fetch(formURL, {
+        method: "POST",
+        mode: "no-cors",
+        body: data
+      }).then(() => {
+        alert("✅ Absensi berhasil dikirim!");
+        document.getElementById("absensiForm").reset();
+      }).catch(err => {
+        alert("Gagal kirim absensi: " + err);
+      });
+    });
+  </script>
+</body>
+</html>
