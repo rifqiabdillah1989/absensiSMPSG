@@ -1,98 +1,91 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
   <meta charset="UTF-8">
-  <title>Absensi Online</title>
+  <title>Absensi Online SMP SG</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 30px; }
+    h2 { color: #0066cc; }
+    form { max-width: 400px; padding: 20px; border: 1px solid #ccc; border-radius: 10px; }
+    label { font-weight: bold; display: block; margin-top: 10px; }
+    input, select, button { width: 100%; padding: 8px; margin-top: 5px; }
+    .note { font-size: 0.9em; color: gray; margin-top: 10px; }
+  </style>
 </head>
 <body>
-  <h2>Absensi Online</h2>
+  <h2>Absensi Online SMP SG</h2>
   <form id="absensiForm">
-    <label>Nama Lengkap:</label><br>
-    <input type="text" id="nama" required><br><br>
+    <label for="nama">Nama:</label>
+    <input type="text" id="nama" name="nama" required>
 
-    <label>Kelas:</label><br>
-    <input type="text" id="kelas" required><br><br>
+    <label for="kelas">Kelas:</label>
+    <select id="kelas" name="kelas" required>
+      <option value="">-- Pilih Kelas --</option>
+      <option value="7A">7A</option>
+      <option value="7B">7B</option>
+      <option value="7C">7C</option>
+      <option value="7D">7D</option>
+      <option value="8A">8A</option>
+      <option value="8B">8B</option>
+      <option value="8C">8C</option>
+      <option value="8D">8D</option>
+      <option value="9A">9A</option>
+      <option value="9B">9B</option>
+      <option value="9C">9C</option>
+      <option value="9D">9D</option>
+    </select>
 
-    <button type="submit">Absen Sekarang</button>
+    <input type="hidden" id="lat" name="lat">
+    <input type="hidden" id="lon" name="lon">
+
+    <button type="submit">Kirim Absensi</button>
+    <div class="note">Pastikan GPS aktif sebelum absen</div>
   </form>
 
   <script>
-    // URL formResponse dari Form Bapak
-    const formURL = "https://docs.google.com/forms/d/e/1FAIpQLSfce9hxm3mzRmnQfudfxSFrWiazNOcnVKYieDW8ITbPKYyC7g/formResponse";
-
-    // Entry IDs dari pre-filled link
-    const entryNama = "entry.1650028786";
-    const entryKelas = "entry.2089936329";
-    const entryLat   = "entry.1532119486";
-    const entryLon   = "entry.1697944181";
-
-    // Koordinat sekolah (ganti dengan koordinat yang benar)
-    const sekolahLat = -7.1575;     // contoh, ganti sesuai lokasi sekolah
-    const sekolahLon = 112.6558;    // contoh, ganti sesuai lokasi sekolah
-    const radiusMaks = 100;         // meter
-
-    function hitungJarak(lat1, lon1, lat2, lon2) {
-      const R = 6371e3; // meter
-      const φ1 = lat1 * Math.PI/180;
-      const φ2 = lat2 * Math.PI/180;
-      const Δφ = (lat2 - lat1) * Math.PI/180;
-      const Δλ = (lon2 - lon1) * Math.PI/180;
-
-      const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
-                Math.cos(φ1) * Math.cos(φ2) *
-                Math.sin(Δλ/2) * Math.sin(Δλ/2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-
-      return R * c;
+    // ambil lokasi GPS
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(function(pos) {
+        document.getElementById("lat").value = pos.coords.latitude;
+        document.getElementById("lon").value = pos.coords.longitude;
+      }, function(err) {
+        alert("Gagal ambil lokasi: " + err.message);
+      });
+    } else {
+      alert("Browser tidak mendukung GPS.");
     }
 
+    // saat form dikirim
     document.getElementById("absensiForm").addEventListener("submit", function(e) {
       e.preventDefault();
 
       const nama = document.getElementById("nama").value;
       const kelas = document.getElementById("kelas").value;
+      const lat = document.getElementById("lat").value;
+      const lon = document.getElementById("lon").value;
 
-      if (!nama || !kelas) {
-        alert("Mohon isi Nama dan Kelas terlebih dahulu.");
-        return;
-      }
+      // URL Google Form (ganti dengan milik Bapak)
+      const formURL = "https://docs.google.com/forms/d/e/1FAIpQLSfce9hxm3mzRmnQfudfxSFrWiazNOcnVKYieDW8ITbPKYyC7g/formResponse?";
 
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(function(pos) {
-          const latitude = pos.coords.latitude;
-          const longitude = pos.coords.longitude;
+      // Mapping ke entry masing-masing field (pakai entry.* dari form Bapak)
+      const data = new URLSearchParams();
+      data.append("entry.1650028786", nama);   // Nama
+      data.append("entry.2089936329", kelas);  // Kelas
+      data.append("entry.1532119486", lat);    // Latitude
+      data.append("entry.1697944181", lon);    // Longitude
 
-          const jarak = hitungJarak(latitude, longitude, sekolahLat, sekolahLon);
-
-          if (jarak > radiusMaks) {
-            alert("❌ Anda berada di luar area sekolah. Jarak: " + Math.round(jarak) + " m");
-            return;
-          }
-
-          const formData = new FormData();
-          formData.append(entryNama, nama);
-          formData.append(entryKelas, kelas);
-          formData.append(entryLat, latitude);
-          formData.append(entryLon, longitude);
-
-          fetch(formURL, {
-            method: "POST",
-            mode: "no-cors",
-            body: formData
-          }).then(() => {
-            alert("✅ Absensi berhasil dikirim! Jarak Anda dari sekolah: " + Math.round(jarak) + " m");
-            document.getElementById("absensiForm").reset();
-          }).catch((err) => {
-            alert("❌ Gagal mengirim absensi: " + err);
-          });
-        }, function(error) {
-          alert("Tidak bisa mendapatkan lokasi: " + error.message);
-        });
-      } else {
-        alert("Browser Anda tidak mendukung geolokasi.");
-      }
+      // kirim data
+      fetch(formURL, {
+        method: "POST",
+        mode: "no-cors",
+        body: data
+      }).then(() => {
+        alert("Absensi berhasil dikirim!");
+        document.getElementById("absensiForm").reset();
+      }).catch(err => {
+        alert("Gagal kirim absensi: " + err);
+      });
     });
   </script>
-
 </body>
 </html>
