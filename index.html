@@ -74,7 +74,7 @@
   // Koordinat SMP Semen Gresik
   const sekolahLat = -7.179016653327394;
   const sekolahLon = 112.64857674876636;
-  const maxRadius = 30; // meter
+  const maxRadius = 20; // meter
 
   function toRad(x) {
     return x * Math.PI / 180;
@@ -121,13 +121,14 @@
       data.append("entry.2089936329", kelas);  // Kelas
       data.append("entry.1532119486", lat);    // Latitude
       data.append("entry.1697944181", lon);    // Longitude
+      data.append("entry.2028310946", deviceID; 
 
       fetch(formURL, {
         method: "POST",
         mode: "no-cors",
         body: data
       }).then(() => {
-        alert("✅ Absensi berhasil dikirim!");
+        alert("✅ Absensi berhasil dikirim!\nDevice ID: " + deviceID);
         document.getElementById("absensiForm").reset();
       }).catch(err => {
         alert("⚠️ Gagal kirim absensi: " + err);
@@ -139,6 +140,7 @@
 </script>
 </body>
 </html>
+
 
 
 
