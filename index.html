@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- penting untuk HP -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Absensi Online SMP Semen Gresik</title>
   <style>
     body {
@@ -51,10 +51,10 @@
 <body>
   <div class="container">
     <div style="text-align: center; margin-bottom: 15px;">
-  <img src="logo.png" alt="Logo SMP Semen Gresik" style="width: 300px; height: auto;">
-  <h2>Absensi Online</h2>
-</div>
-   <form id="absensiForm">
+      <img src="logo.png" alt="Logo SMP Semen Gresik" style="width: 300px; height: auto;">
+      <h2>Absensi Online</h2>
+    </div>
+    <form id="absensiForm">
       <label for="nama">Nama Lengkap</label>
       <input type="text" id="nama" name="nama" required>
 
@@ -71,17 +71,22 @@
   </div>
 
 <script>
-  // Koordinat SMP Semen Gresik
-  const sekolahLat = -7.179016653327394;
-  const sekolahLon = 112.64857674876636;
-  const maxRadius = 30; // meter
+  // Lokasi SMP Semen Gresik
+  const sekolahLat = -7.1790506;
+  const sekolahLon = 112.6484891;
+  const maxRadius = 20; // meter
 
-  function toRad(x) {
-    return x * Math.PI / 180;
+  // buat DeviceID unik per HP
+  function getDeviceID() {
+    if (!localStorage.deviceID) {
+      localStorage.deviceID = "DEV-" + Math.random().toString(36).substr(2, 9);
+    }
+    return localStorage.deviceID + " | " + navigator.userAgent;
   }
 
+  function toRad(x) { return x * Math.PI / 180; }
   function hitungJarak(lat1, lon1, lat2, lon2) {
-    const R = 6371000; // meter
+    const R = 6371000;
     const dLat = toRad(lat2 - lat1);
     const dLon = toRad(lon2 - lon1);
     const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
@@ -96,6 +101,7 @@
 
     const nama = document.getElementById("nama").value;
     const kelas = document.getElementById("kelas").value;
+    const deviceID = getDeviceID();
 
     if (!navigator.geolocation) {
       alert("Browser tidak mendukung GPS.");
@@ -105,33 +111,32 @@
     navigator.geolocation.getCurrentPosition(function(pos) {
       const lat = pos.coords.latitude;
       const lon = pos.coords.longitude;
-
       const jarak = hitungJarak(sekolahLat, sekolahLon, lat, lon);
 
       if (jarak > maxRadius) {
-        alert("❌ Anda berada di luar area sekolah (jarak: " + jarak.toFixed(1) + " m). Absensi ditolak.");
+        alert("❌ Anda di luar area sekolah (" + jarak.toFixed(1) + " m). Absensi ditolak.");
         return;
       }
 
-      // Ganti URL ini dengan formResponse dari Google Form Bapak
-      const formURL = "https://docs.google.com/forms/d/e/1FAIpQLSfce9hxm3mzRmnQfudfxSFrWiazNOcnVKYieDW8ITbPKYyC7g/formResponse?";
+      // URL Google Form (harus pakai formResponse)
+      const formURL = "https://docs.google.com/forms/d/e/1FAIpQLSfce9hxm3mzRmnQfudfxSFrWiazNOcnVKYieDW8ITbPKYyC7g/formResponse";
 
-      const data = new URLSearchParams();
-      data.append("entry.1650028786", nama);   // Nama
-      data.append("entry.2089936329", kelas);  // Kelas
-      data.append("entry.1532119486", lat);    // Latitude
-      data.append("entry.1697944181", lon);    // Longitude
+      const data = new FormData();
+      data.append("entry.1650028786", nama);     // Nama
+      data.append("entry.2089936329", kelas);    // Kelas
+      data.append("entry.1532119486", lat);      // Latitude
+      data.append("entry.1697944181", lon);      // Longitude
+      data.append("entry.2028310946", deviceID); // Device ID (pastikan entry ini ada di Form)
 
-      fetch(formURL, {
-        method: "POST",
-        mode: "no-cors",
-        body: data
-      }).then(() => {
-        alert("✅ Absensi berhasil dikirim!");
+      fetch(formURL, { method: "POST", mode: "no-cors", body: data })
+      .then(() => {
+        alert("✅ Absensi berhasil!\nDevice ID: " + deviceID);
         document.getElementById("absensiForm").reset();
-      }).catch(err => {
+      })
+      .catch(err => {
         alert("⚠️ Gagal kirim absensi: " + err);
       });
+
     }, function(err) {
       alert("⚠️ Gagal ambil lokasi: " + err.message);
     });
@@ -139,11 +144,3 @@
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
