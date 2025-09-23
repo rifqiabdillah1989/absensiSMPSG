@@ -72,11 +72,11 @@
 
 <script>
   // Lokasi SMP Semen Gresik
-  const sekolahLat = -7.1790506;
-  const sekolahLon = 112.6484891;
-  const maxRadius = 20; // meter
+  const sekolahLat = -7.179016653327394;
+  const sekolahLon = 112.64857674876636;
+  const maxRadius = 30; // meter
 
-  // buat DeviceID unik per HP 
+  // buat DeviceID unik per HP
   function getDeviceID() {
     if (!localStorage.deviceID) {
       localStorage.deviceID = "DEV-" + Math.random().toString(36).substr(2, 9);
@@ -114,7 +114,7 @@
       const jarak = hitungJarak(sekolahLat, sekolahLon, lat, lon);
 
       if (jarak > maxRadius) {
-        alert("❌ Anda di luar area absensi (" + jarak.toFixed(1) + " m). Absensi ditolak.");
+        alert("❌ Anda di luar area sekolah (" + jarak.toFixed(1) + " m). Absensi ditolak.");
         return;
       }
 
@@ -130,7 +130,7 @@
 
       fetch(formURL, { method: "POST", mode: "no-cors", body: data })
       .then(() => {
-        alert("✅ Absensi berhasil!: " );
+        alert("✅ Absensi berhasil!\nDevice ID: " + deviceID);
         document.getElementById("absensiForm").reset();
       })
       .catch(err => {
@@ -144,6 +144,3 @@
 </script>
 </body>
 </html>
-
-
-
