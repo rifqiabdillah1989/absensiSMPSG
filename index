@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Absensi Online SMP Semen Gresik</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #ADD8E6;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .container {
+      background: white;
+      padding: 20px 30px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+      width: 360px;
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+    input, select, button {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    button {
+      background: #2b7a78;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 15px;
+    }
+    button:disabled {
+      background: #aaa;
+      cursor: not-allowed;
+    }
+    button:hover:enabled {
+      background: #205b57;
+    }
+    #status {
+      margin-top: 10px;
+      font-size: 14px;
+      font-weight: bold;
+      text-align: center;
+    }
+    #log {
+      margin-top: 20px;
+      padding: 10px;
+      border-top: 2px solid #ddd;
+    }
+    #log h3 {
+      font-size: 16px;
+      margin-bottom: 10px;
+    }
+    .log-item {
+      font-size: 14px;
+      border-bottom: 1px dashed #ccc;
+      padding: 5px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div style="text-align: center; margin-bottom: 15px;">
+      <img src="logo.png" alt="Logo SMP Semen Gresik" style="width: 300px; height: auto;">
+      <h2>Absensi Online</h2>
+    </div>
+
+    <form id="absensiForm">
+      <label for="nama">Nama Lengkap</label>
+      <input type="text" id="nama" name="nama" required>
+
+      <label for="kelas">Kelas</label>
+      <select id="kelas" name="kelas" required>
+        <option value="">-- Pilih Kelas --</option>
+        <option>7A</option><option>7B</option><option>7C</option><option>7D</option>
+        <option>8A</option><option>8B</option><option>8C</option><option>8D</option>
+        <option>9A</option><option>9B</option><option>9C</option><option>9D</option>
+      </select>
+
+      <button type="submit" id="submitBtn" disabled>Kirim Absensi</button>
+    </form>
+
+    <div id="status">📡 Menunggu GPS...</div>
+
+    <div id="log">
+      <h3>Riwayat Absensi</h3>
+      <div id="logItems"></div>
+    </div>
+  </div>
+
+<script>
+  // Koordinat sekolah (SMP Semen Gresik)
+  const sekolahLat = -7.179016653327394;
+  const sekolahLon = 112.64857674876636;
+  const maxRadius = 50; // meter
+
+  // Device ID unik
+  function getDeviceID() {
+    if (!localStorage.deviceID) {
+      localStorage.deviceID = "DEV-" + Math.random().toString(36).substr(2, 9);
+    }
+    return localStorage.deviceID + " | " + navigator.userAgent;
+  }
+
+  // Hitung jarak antar koordinat
+  function toRad(x) { return x * Math.PI / 180; }
+  function hitungJarak(lat1, lon1, lat2, lon2) {
+    const R = 6371000;
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+              Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
+  // Load log absensi dari localStorage
+  function loadLog() {
+    const logs = JSON.parse(localStorage.getItem("absensiLog") || "[]");
+    const logDiv = document.getElementById("logItems");
+    logDiv.innerHTML = "";
+    logs.forEach(l => {
+      const div = document.createElement("div");
+      div.className = "log-item";
+      div.textContent = `${l.waktu} - ${l.nama} (${l.kelas}) ✅`;
+      logDiv.appendChild(div);
+    });
+  }
+
+  // Simpan log ke localStorage
+  function saveLog(nama, kelas) {
+    const logs = JSON.parse(localStorage.getItem("absensiLog") || "[]");
+    const now = new Date();
+    const waktu = now.toLocaleString("id-ID");
+    logs.unshift({ waktu, nama, kelas }); // tambahkan di atas
+    localStorage.setItem("absensiLog", JSON.stringify(logs));
+    loadLog();
+  }
+
+  // Update lokasi realtime
+  if (navigator.geolocation) {
+    navigator.geolocation.watchPosition(function(pos) {
+      const lat = pos.coords.latitude;
+      const lon = pos.coords.longitude;
+      const akurasi = pos.coords.accuracy;
+      const jarak = hitungJarak(sekolahLat, sekolahLon, lat, lon);
+
+      if (jarak <= maxRadius) {
+        document.getElementById("status").innerHTML =
+          `✅ Anda berada di area sekolah<br>Jarak: ${jarak.toFixed(1)} m | Akurasi: ±${akurasi.toFixed(1)} m`;
+        document.getElementById("submitBtn").disabled = false;
+      } else {
+        document.getElementById("status").innerHTML =
+          `❌ Anda di luar area sekolah<br>Jarak: ${jarak.toFixed(1)} m | Akurasi: ±${akurasi.toFixed(1)} m`;
+        document.getElementById("submitBtn").disabled = true;
+      }
+    }, function(err) {
+      document.getElementById("status").innerText = "⚠️ Gagal ambil lokasi: " + err.message;
+    }, {
+      enableHighAccuracy: true,
+      maximumAge: 0,
+      timeout: 5000
+    });
+  } else {
+    document.getElementById("status").innerText = "Browser tidak mendukung GPS.";
+  }
+
+  // Proses submit absensi
+  document.getElementById("absensiForm").addEventListener("submit", function(e) {
+    e.preventDefault();
+
+    const nama = document.getElementById("nama").value;
+    const kelas = document.getElementById("kelas").value;
+    const deviceID = getDeviceID();
+
+    navigator.geolocation.getCurrentPosition(function(pos) {
+      const lat = pos.coords.latitude;
+      const lon = pos.coords.longitude;
+
+      // URL Google Form (pakai formResponse)
+      const formURL = "https://docs.google.com/forms/d/e/1FAIpQLSfce9hxm3mzRmnQfudfxSFrWiazNOcnVKYieDW8ITbPKYyC7g/formResponse";
+
+      const data = new FormData();
+      data.append("entry.1650028786", nama);     // Nama
+      data.append("entry.2089936329", kelas);    // Kelas
+      data.append("entry.1532119486", lat);      // Latitude
+      data.append("entry.1697944181", lon);      // Longitude
+      data.append("entry.2028310946", deviceID); // Device ID
+
+      fetch(formURL, { method: "POST", mode: "no-cors", body: data })
+      .then(() => {
+        alert("✅ Absensi berhasil terkirim!");
+        saveLog(nama, kelas);
+        document.getElementById("absensiForm").reset();
+        document.getElementById("submitBtn").disabled = true;
+      })
+      .catch(err => {
+        alert("⚠️ Gagal kirim absensi: " + err);
+      });
+    });
+  });
+
+  // Tampilkan log saat halaman dibuka
+  loadLog();
+</script>
+</body>
+</html>
